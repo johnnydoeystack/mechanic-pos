@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanic POS - Flat Rate Register</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel-bg: #1e1e1e;
+            --text: #e0e0e0;
+            --accent: #f0a500;
+            --border: #333;
+            --hover: #2a2a2a;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --visual: #9b59b6;
+            --perf: #3498db;
+            --armor: #e74c3c;
+            --repair: #2ecc71;
+            --package: #f0a500;
+            --tax-bg: #2c2c2c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* SIDEBAR (Menu) */
+        .sidebar {
+            width: 360px;
+            min-width: 360px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 0.8rem;
+            gap: 0.6rem;
+        }
+
+        .sidebar h2 {
+            font-size: 1.3rem;
+            text-align: center;
+            color: var(--accent);
+            margin-bottom: 0.2rem;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.4rem;
+        }
+
+        .category {
+            margin-bottom: 0.3rem;
+        }
+
+        .cat-header {
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.3rem 0.5rem;
+            border-radius: 6px;
+            margin-bottom: 0.2rem;
+            color: white;
+            display: inline-block;
+        }
+
+        .cat-packages .cat-header {
+            background: var(--package);
+            color: #000;
+        }
+        .cat-visual .cat-header {
+            background: var(--visual);
+        }
+        .cat-perf .cat-header {
+            background: var(--perf);
+        }
+        .cat-armor .cat-header {
+            background: var(--armor);
+        }
+        .cat-repair .cat-header {
+            background: var(--repair);
+        }
+
+        .button-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .menu-btn {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #ddd;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            flex: 1 1 auto;
+            min-width: 100px;
+            text-align: left;
+            position: relative;
+        }
+
+        .menu-btn:hover {
+            background: #3a3a3a;
+            border-color: #666;
+            transform: translateY(-1px);
+        }
+        .menu-btn:active {
+            transform: scale(0.97);
+            background: #444;
+        }
+        .menu-btn .price {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--accent);
+        }
+        .menu-btn .note-small {
+            font-size: 0.7rem;
+            color: #aaa;
+            font-style: italic;
+        }
+        .menu-btn.duplicate-shake {
+            animation: shake 0.3s ease;
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-4px);
+            }
+            75% {
+                transform: translateX(4px);
+            }
+        }
+
+        .menu-btn[data-cat="package"] {
+            border-left: 4px solid var(--package);
+        }
+        .menu-btn[data-cat="visual"] {
+            border-left: 4px solid var(--visual);
+        }
+        .menu-btn[data-cat="perf"] {
+            border-left: 4px solid var(--perf);
+        }
+        .menu-btn[data-cat="armor"] {
+            border-left: 4px solid var(--armor);
+        }
+        .menu-btn[data-cat="repair"] {
+            border-left: 4px solid var(--repair);
+        }
+
+        /* MAIN PANEL (Order) */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1.2rem;
+            background: #1a1a1a;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .order-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .order-header h1 {
+            font-size: 1.8rem;
+            color: var(--accent);
+        }
+        .customer-input {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #2a2a2a;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+        }
+        .customer-input input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1rem;
+            width: 180px;
+            outline: none;
+            padding: 0.3rem;
+        }
+        .customer-input input::placeholder {
+            color: #888;
+        }
+        .clear-btn {
+            background: #3a3a3a;
+            border: 1px solid #555;
+            color: #ddd;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .clear-btn:hover {
+            background: #c0392b;
+            color: white;
+            border-color: #c0392b;
+        }
+
+        .order-list {
+            flex: 1;
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            overflow-y: auto;
+            min-height: 200px;
+            border: 1px solid #333;
+        }
+        .order-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.3rem;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 1rem;
+        }
+        .order-item .name {
+            flex: 1;
+            font-weight: 500;
+        }
+        .order-item .qty-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0 10px;
+        }
+        .qty-btn {
+            background: #333;
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        .qty-btn:hover {
+            background: #555;
+        }
+        .qty-btn:active {
+            background: #777;
+        }
+        .order-item .item-price {
+            font-weight: 700;
+            min-width: 90px;
+            text-align: right;
+            color: var(--accent);
+        }
+        .remove-item {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            font-size: 1.3rem;
+            cursor: pointer;
+            margin-left: 8px;
+            opacity: 0.7;
+            transition: 0.2s;
+        }
+        .remove-item:hover {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        .empty-order {
+            text-align: center;
+            color: #666;
+            margin-top: 2rem;
+            font-style: italic;
+        }
+
+        .totals-section {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid #333;
+            margin-bottom: 0.5rem;
+        }
+        .totals-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1rem;
+            margin-bottom: 0.4rem;
+        }
+        .totals-line.total {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--accent);
+            border-top: 2px solid #444;
+            padding-top: 0.5rem;
+            margin-top: 0.3rem;
+        }
+        .tax-settings {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .tax-settings input {
+            width: 70px;
+            background: #2a2a2a;
+            border: 1px solid #555;
+            color: white;
+            padding: 0.3rem;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .action-btn {
+            background: #2c3e50;
+            border: none;
+            color: white;
+            padding: 0.7rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+        .copy-btn {
+            background: #16a085;
+        }
+        .copy-btn:hover {
+            background: #1abc9c;
+        }
+
+        /* Policies Panel (collapsible) */
+        .policies-panel {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 0.8rem;
+            border: 1px solid #333;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+        }
+        .policies-toggle {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: 100%;
+            text-align: left;
+            padding: 0.3rem;
+        }
+        .policies-content {
+            display: none;
+            margin-top: 0.5rem;
+            color: #ccc;
+        }
+        .policies-content.open {
+            display: block;
+        }
+        .policy-item {
+            margin-bottom: 0.3rem;
+            padding-left: 1rem;
+            position: relative;
+        }
+        .policy-item::before {
+            content: "•";
+            color: var(--accent);
+            position: absolute;
+            left: 0;
+        }
+
+        .clock {
+            font-size: 0.8rem;
+            color: #888;
+            margin-left: 1rem;
+        }
+        @media (max-width: 800px) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                min-width: 100%;
+                max-height: 45vh;
+            }
+            .main {
+                height: 55vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- SIDEBAR: Menu Buttons -->
+    <div class="sidebar" id="sidebar">
+        <h2>🔧 MECHANIC POS</h2>
+        <!-- Categories will be injected by JS -->
+    </div>
+
+    <!-- MAIN: Order Summary -->
+    <div class="main">
+        <div class="order-header">
+            <h1>🧾 Current Order</h1>
+            <div class="customer-input">
+                <span>👤</span>
+                <input type="text" id="customerName" placeholder="Customer / Plate" autocomplete="off">
+            </div>
+            <button class="clear-btn" id="clearOrderBtn">🗑 Clear Order</button>
+            <span class="clock" id="liveClock"></span>
+        </div>
+
+        <div class="order-list" id="orderListContainer">
+            <div class="empty-order">No items yet. Click a service to start.</div>
+        </div>
+
+        <div class="totals-section">
+            <div class="totals-line"><span>Subtotal:</span> <span id="subtotalDisplay">$0</span></div>
+            <div class="tax-settings">
+                <span>Tax %:</span>
+                <input type="number" id="taxRateInput" value="0" min="0" max="100" step="1">
+                <span id="taxAmountDisplay">$0</span>
+            </div>
+            <div class="totals-line total"><span>TOTAL:</span> <span id="totalDisplay">$0</span></div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn copy-btn" id="copyQuoteBtn">📋 Copy Quote to Clipboard</button>
+            <button class="action-btn" id="printFriendlyBtn">🖨 Print / Save View</button>
+        </div>
+
+        <!-- Staff Policies (Collapsible) -->
+        <div class="policies-panel">
+            <button class="policies-toggle" id="policiesToggle">📌 Staff Reminders (click to expand)</button>
+            <div class="policies-content" id="policiesContent">
+                <div class="policy-item"><strong>Cash First, No Favors:</strong> All services collected upfront. No discounts.</div>
+                <div class="policy-item"><strong>Armor Policy:</strong> Default Level 3. Level 5 only on request (reduces speed).</div>
+                <div class="policy-item"><strong>PD / EMS:</strong> No paint or livery changes allowed.</div>
+                <div class="policy-item"><strong>Flat Rate Policy:</strong> Price fixed whether we install or sell parts.</div>
+                <div class="policy-item"><strong>Daily Kickback:</strong> 100k into panel after first full upgrade of shift.</div>
+                <div class="policy-item"><strong>Active 3 days/week minimum</strong> – 5 days MIA = removal.</div>
+                <div class="policy-item"><strong>Tow Truck:</strong> Mechanics+ only; Apprentice under supervision.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // --- MENU DATA (editable) ---
+            const menuCategories = [{
+                name: "Full Packages",
+                colorClass: "cat-packages",
+                catKey: "package",
+                items: [
+                    { name: "Full Upgrade (All Perf + Visuals)", price: 650000, type: "package", multiple: false,
+                        note: "" },
+                    { name: "Full Upgrade (No Armor)", price: 550000, type: "package", multiple: false, note: "" },
+                    { name: "Max Performance + Armor", price: 350000, type: "package", multiple: false, note: "" },
+                    { name: "Max Performance (No Armor)", price: 250000, type: "package", multiple: false, note: "" },
+                    { name: "Max Visuals", price: 350000, type: "package", multiple: false, note: "" },
+                    { name: "PD/EMS Full Upgrades", price: 550000, type: "package", multiple: false,
+                        note: "No paint/livery" },
+                    { name: "Limited Vehicles Full Upgrades", price: 200000, type: "package", multiple: false,
+                        note: "Underglow, Headlights, Paint, Turbo, Wheel Color, Tag" }
+                ]
+            }, {
+                name: "Visual Upgrades",
+                colorClass: "cat-visual",
+                catKey: "visual",
+                items: [
+                    { name: "Visual Mod", price: 25000, type: "visual", multiple: true, note: "per mod" },
+                    { name: "Full Neons", price: 125000, type: "visual", multiple: false,
+                    note: "Install + first color" },
+                    { name: "Headlights", price: 40000, type: "visual", multiple: false,
+                    note: "Install + first color" }
+                ]
+            }, {
+                name: "Performance Upgrades",
+                colorClass: "cat-perf",
+                catKey: "perf",
+                items: [
+                    { name: "Engine Upgrade", price: 50000, type: "perf", multiple: false },
+                    { name: "Turbo Upgrade", price: 100000, type: "perf", multiple: false },
+                    { name: "Brakes", price: 30000, type: "perf", multiple: false },
+                    { name: "Transmission", price: 30000, type: "perf", multiple: false },
+                    { name: "Suspension", price: 30000, type: "perf", multiple: false }
+                ]
+            }, {
+                name: "Armor",
+                colorClass: "cat-armor",
+                catKey: "armor",
+                items: [
+                    { name: "Armor", price: 100000, type: "armor", multiple: false,
+                        note: "Default Lvl 3; Lvl 5 on request" }
+                ]
+            }, {
+                name: "Repairs",
+                colorClass: "cat-repair",
+                catKey: "repair",
+                items: [
+                    { name: "Repair Kit Yellow", price: 10000, type: "repair", multiple: true },
+                    { name: "Repair Kit Red", price: 15000, type: "repair", multiple: true },
+                    { name: "Tire Repair", price: 5000, type: "repair", multiple: true }
+                ]
+            }];
+
+            // --- STATE ---
+            let order = []; // { id, name, price, qty, catKey }
+            let taxRate = 0; // percentage
+
+            // --- DOM refs ---
+            const sidebarEl = document.getElementById('sidebar');
+            const orderListContainer = document.getElementById('orderListContainer');
+            const subtotalDisplay = document.getElementById('subtotalDisplay');
+            const taxAmountDisplay = document.getElementById('taxAmountDisplay');
+            const totalDisplay = document.getElementById('totalDisplay');
+            const taxRateInput = document.getElementById('taxRateInput');
+            const customerNameInput = document.getElementById('customerName');
+            const clearOrderBtn = document.getElementById('clearOrderBtn');
+            const copyQuoteBtn = document.getElementById('copyQuoteBtn');
+            const policiesToggle = document.getElementById('policiesToggle');
+            const policiesContent = document.getElementById('policiesContent');
+            const liveClock = document.getElementById('liveClock');
+
+            // --- UTILS ---
+            function formatCurrency(amount) {
+                return '$' + amount.toLocaleString('en-US');
+            }
+
+            function generateId() {
+                return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            }
+
+            // --- RENDER SIDEBAR ---
+            function renderSidebar() {
+                sidebarEl.innerHTML = '<h2>🔧 MECHANIC POS</h2>';
+                menuCategories.forEach(cat => {
+                    const catDiv = document.createElement('div');
+                    catDiv.className = `category ${cat.colorClass}`;
+                    catDiv.innerHTML = `<div class="cat-header">${cat.name}</div><div class="button-grid" id="grid-${cat.catKey}"></div>`;
+                    sidebarEl.appendChild(catDiv);
+
+                    const grid = catDiv.querySelector('.button-grid');
+                    cat.items.forEach(item => {
+                        const btn = document.createElement('button');
+                        btn.className = 'menu-btn';
+                        btn.setAttribute('data-cat', cat.catKey);
+                        btn.innerHTML = `
+                            <span>${item.name}</span>
+                            <span class="price">${formatCurrency(item.price)}</span>
+                            ${item.note ? `<span class="note-small">${item.note}</span>` : ''}
+                        `;
+                        btn.addEventListener('click', (e) => {
+                            addItem(item, cat.catKey, btn);
+                        });
+                        grid.appendChild(btn);
+                    });
+                });
+            }
+
+            // --- ADD ITEM LOGIC ---
+            function addItem(item, catKey, buttonElement) {
+                // Prevent duplicate for non-multiple items
+                if (!item.multiple) {
+                    const exists = order.find(o => o.name === item.name && o.catKey === catKey);
+                    if (exists) {
+                        // Visual feedback: shake button
+                        if (buttonElement) {
+                            buttonElement.classList.add('duplicate-shake');
+                            setTimeout(() => buttonElement.classList.remove('duplicate-shake'), 300);
+                        }
+                        // brief toast-like notification
+                        showTemporaryMessage(`"${item.name}" already in order.`);
+                        return;
+                    }
+                }
+
+                // For multiple items, increment existing if found
+                if (item.multiple) {
+                    const existing = order.find(o => o.name === item.name && o.catKey === catKey);
+                    if (existing) {
+                        existing.qty += 1;
+                        renderOrder();
+                        return;
+                    }
+                }
+
+                // Otherwise add new entry
+                order.push({
+                    id: generateId(),
+                    name: item.name,
+                    price: item.price,
+                    qty: 1,
+                    catKey: catKey
+                });
+                renderOrder();
+            }
+
+            function showTemporaryMessage(msg) {
+                // Simple toast at top of order list
+                const toast = document.createElement('div');
+                toast.textContent = msg;
+                toast.style.cssText = `
+                    background: #c0392b; color: white; padding: 0.5rem 1rem; border-radius: 6px;
+                    margin-bottom: 0.5rem; text-align: center; font-weight: bold; animation: fadeOut 2s forwards;
+                `;
+                orderListContainer.prepend(toast);
+                setTimeout(() => toast.remove(), 2000);
+            }
+
+            // --- REMOVE ITEM ---
+            function removeItem(id) {
+                order = order.filter(o => o.id !== id);
+                renderOrder();
+            }
+
+            // --- CHANGE QTY ---
+            function changeQty(id, delta) {
+                const item = order.find(o => o.id === id);
+                if (!item) return;
+                item.qty += delta;
+                if (item.qty <= 0) {
+                    removeItem(id);
+                    return;
+                }
+                renderOrder();
+            }
+
+            // --- RENDER ORDER ---
+            function renderOrder() {
+                if (order.length === 0) {
+                    orderListContainer.innerHTML = '<div class="empty-order">No items yet. Click a service to start.</div>';
+                } else {
+                    orderListContainer.innerHTML = order.map(o => {
+                        const lineTotal = o.price * o.qty;
+                        return `
+                            <div class="order-item">
+                                <span class="name">${o.name}</span>
+                                <div class="qty-control">
+                                    <button class="qty-btn" data-action="decr" data-id="${o.id}">−</button>
+                                    <span>${o.qty}</span>
+                                    <button class="qty-btn" data-action="incr" data-id="${o.id}">+</button>
+                                </div>
+                                <span class="item-price">${formatCurrency(lineTotal)}</span>
+                                <button class="remove-item" data-id="${o.id}">✕</button>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // Attach event listeners to dynamic buttons
+                    document.querySelectorAll('.qty-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const id = btn.getAttribute('data-id');
+                            const action = btn.getAttribute('data-action');
+                            if (action === 'incr') changeQty(id, 1);
+                            else if (action === 'decr') changeQty(id, -1);
+                        });
+                    });
+                    document.querySelectorAll('.remove-item').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const id = btn.getAttribute('data-id');
+                            removeItem(id);
+                        });
+                    });
+                }
+                updateTotals();
+            }
+
+            // --- TOTALS ---
+            function updateTotals() {
+                const subtotal = order.reduce((sum, o) => sum + o.price * o.qty, 0);
+                const taxAmount = Math.round(subtotal * taxRate / 100);
+                const total = subtotal + taxAmount;
+
+                subtotalDisplay.textContent = formatCurrency(subtotal);
+                taxAmountDisplay.textContent = formatCurrency(taxAmount);
+                totalDisplay.textContent = formatCurrency(total);
+            }
+
+            // --- TAX INPUT ---
+            taxRateInput.addEventListener('input', () => {
+                let val = parseFloat(taxRateInput.value);
+                if (isNaN(val) || val < 0) val = 0;
+                if (val > 100) val = 100;
+                taxRate = val;
+                taxRateInput.value = val; // enforce
+                updateTotals();
+            });
+
+            // --- CLEAR ORDER ---
+            clearOrderBtn.addEventListener('click', () => {
+                if (order.length > 0 && confirm('Clear the entire order?')) {
+                    order = [];
+                    renderOrder();
+                } else if (order.length === 0) {
+                    order = [];
+                    renderOrder();
+                }
+            });
+
+            // --- COPY QUOTE ---
+            copyQuoteBtn.addEventListener('click', () => {
+                const customer = customerNameInput.value.trim() || 'Customer';
+                if (order.length === 0) {
+                    alert('No items in order to quote.');
+                    return;
+                }
+                const itemsList = order.map(o => {
+                    return o.qty > 1 ? `${o.qty}x ${o.name}` : o.name;
+                }).join(', ');
+                const subtotal = order.reduce((sum, o) => sum + o.price * o.qty, 0);
+                const taxAmount = Math.round(subtotal * taxRate / 100);
+                const total = subtotal + taxAmount;
+                const quoteText =
+                    `/mechanic ${customer} - ${itemsList}. Subtotal: ${formatCurrency(subtotal)} + Tax (${taxRate}%): ${formatCurrency(taxAmount)} = TOTAL: ${formatCurrency(total)} [Cash First, Flat Rate]`;
+
+                navigator.clipboard.writeText(quoteText).then(() => {
+                    alert('Quote copied to clipboard!');
+                }).catch(() => {
+                    prompt('Copy manually:', quoteText);
+                });
+            });
+
+            // --- POLICIES TOGGLE ---
+            policiesToggle.addEventListener('click', () => {
+                policiesContent.classList.toggle('open');
+                policiesToggle.textContent = policiesContent.classList.contains('open') ?
+                    '📌 Staff Reminders (click to collapse)' : '📌 Staff Reminders (click to expand)';
+            });
+
+            // --- LIVE CLOCK ---
+            function updateClock() {
+                const now = new Date();
+                liveClock.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit',
+                    second: '2-digit' });
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // --- PRINT FRIENDLY (simple) ---
+            document.getElementById('printFriendlyBtn').addEventListener('click', () => {
+                const customer = customerNameInput.value.trim() || 'Customer';
+                const dateStr = new Date().toLocaleString();
+                let printContent = `<h2>Mechanic Order - ${customer}</h2><p>${dateStr}</p><ul>`;
+                order.forEach(o => {
+                    printContent +=
+                        `<li>${o.qty}x ${o.name} - ${formatCurrency(o.price * o.qty)} (${formatCurrency(o.price)} each)</li>`;
+                });
+                const subtotal = order.reduce((s, o) => s + o.price * o.qty, 0);
+                const taxAmount = Math.round(subtotal * taxRate / 100);
+                const total = subtotal + taxAmount;
+                printContent +=
+                    `</ul><p>Subtotal: ${formatCurrency(subtotal)}<br>Tax (${taxRate}%): ${formatCurrency(taxAmount)}<br><strong>Total: ${formatCurrency(total)}</strong></p>`;
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(
+                    `<html><head><title>Mechanic Order</title></head><body>${printContent}</body></html>`);
+                printWindow.document.close();
+                printWindow.print();
+            });
+
+            // --- INIT ---
+            renderSidebar();
+            renderOrder();
+            taxRate = 0;
+            taxRateInput.value = 0;
+        })();
+    </script>
+</body>
+</html>
