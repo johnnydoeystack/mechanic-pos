@@ -526,7 +526,6 @@
         (function() {
             // ---------- SIMPLE SPLASH FADE ----------
             const splash = document.getElementById('splashScreen');
-            // Splash animation duration is 2.8s in CSS; hide after it finishes
             window.addEventListener('load', () => {
                 setTimeout(() => {
                     splash.style.opacity = '0';
@@ -557,10 +556,10 @@
                 osc.stop(now + 0.03);
             }
 
-            // ---------- DATA ----------
+            // ---------- DATA (Updated package name) ----------
             const menuCategories = [{
                 name: "Full Packages", catKey: "package", items: [
-                    { name: "Full Upgrade (All Perf + Visuals)", price: 650000, type: "package", multiple: false },
+                    { name: "Full Upgrade (All Perf + Visuals + Armor)", price: 650000, type: "package", multiple: false },
                     { name: "Full Upgrade (No Armor)", price: 550000, type: "package", multiple: false },
                     { name: "Max Performance + Armor", price: 350000, type: "package", multiple: false },
                     { name: "Max Performance (No Armor)", price: 250000, type: "package", multiple: false },
